@@ -1,3 +1,11 @@
+<div align="center">
+
+[![Version](https://img.shields.io/github/v/release/XKaguya/AutoReconnect-Remastered?sort=semver&style=flat-square&color=8DBBE9&label=Version)]()
+[![GitHub Issues](https://img.shields.io/github/issues/XKaguya/AutoReconnect-Remastered/total?style=flat-square&label=Issues&color=d77982)](https://github.com/XKaguya/AutoReconnect-Remastered)
+![Downloads](https://img.shields.io/github/downloads/XKaguya/AutoReconnect-Remastered/total?style=flat-square&label=Downloads&color=d77982)
+
+</div>
+
 # StoPasswordBook
 A tool used to conveniently change accounts.
 
