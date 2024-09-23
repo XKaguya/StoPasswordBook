@@ -1,6 +1,8 @@
 # StoPasswordBook
 A tool used to conveniently change accounts.
 
+# This program will store sensitive data (Passwords) to local files. Please do not spread your `Shadow.xml` to anyone else!!!
+
 <img width="594" alt="bc1fd56ad8dfaf8e2f239506353f34ad" src="https://github.com/user-attachments/assets/3b73681f-df1f-4bc7-b8f2-c80e24f617d7">
 
 
