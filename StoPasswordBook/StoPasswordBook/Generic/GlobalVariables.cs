@@ -5,6 +5,9 @@ namespace StoPasswordBook.Generic
 {
     public class GlobalVariables
     {
+        [Description("Set to true to allow program self update. \nDefault value: true")]
+        public static bool AutoUpdate { get; set; } = true;
+        
         [Description("Launcher path. Do not touch this unless you're reinstalled your STO. \nDefault value: null")]
         public static string LauncherPath { get; set; } = "null";
         

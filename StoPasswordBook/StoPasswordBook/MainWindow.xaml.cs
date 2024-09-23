@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using log4net;
 using log4net.Config;
 using StoPasswordBook.Generic;
+using STOTool.Feature;
 using Wpf.Ui.Controls;
 
 namespace StoPasswordBook;
@@ -16,6 +17,8 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
+    public static readonly string Version = "1.0.0";
+    
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
     private ObservableDictionary<string, string> Accounts { get; set; }
@@ -126,6 +129,8 @@ public partial class MainWindow : FluentWindow
 
     private async Task InitMethod()
     {
+        AutoUpdate.StartAutoUpdateTask();
+        
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = "StoPasswordBook.log4net.config";
         
