@@ -8,7 +8,7 @@ A tool used to conveniently change accounts.
 
 # Usage
 
-* Download the latest release version from [Releases](https://github.com/XKaguya/StoPasswordBook/releases).
+* Download the latest release version from [Releases](https://github.com/XKaguya/StoPasswordBook/releases/latest).
 * Double-click the program to run it. Wait until Chrome is installed. (At this stage, it might fail due to network issues. Check the logs if nothing happens and it's stuck.)
 * Wait until the text block turns green with the message `Done.`
   
@@ -43,4 +43,4 @@ Once `Done.` appears, you are free to choose which account and password will be 
 Star Trek Online Launcher is a `CEF` Program. By using the `--remote-debugging-port=port` command, it allows users to remotely debug with DevTools.
 
 # Contributing
-Contributions are welcome! Feel free to submit issues or pull requests to improve the project.
+Contributions are welcome! Feel free to submit [issues](https://github.com/XKaguya/StoPasswordBook/issues) or [pull requests](https://github.com/XKaguya/StoPasswordBook/pulls) to improve the project.
