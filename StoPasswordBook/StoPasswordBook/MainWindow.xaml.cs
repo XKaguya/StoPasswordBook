@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Media;
@@ -17,7 +16,7 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    public static readonly string Version = "1.0.0";
+    public static readonly string Version = "1.0.1";
     
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
@@ -129,8 +128,6 @@ public partial class MainWindow : FluentWindow
 
     private async Task InitMethod()
     {
-        AutoUpdate.StartAutoUpdateTask();
-        
         var assembly = Assembly.GetExecutingAssembly();
         var resourceName = "StoPasswordBook.log4net.config";
         
@@ -143,6 +140,8 @@ public partial class MainWindow : FluentWindow
         {
             Log.Error($"Failed to find embedded resource: {resourceName}");
         }
+        
+        AutoUpdate.StartAutoUpdateTask();
         
         Log.Info("Initializing Api...");
         UpdateText("Initializing Api...");

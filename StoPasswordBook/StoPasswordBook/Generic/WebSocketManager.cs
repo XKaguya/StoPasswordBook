@@ -9,6 +9,7 @@ namespace StoPasswordBook.Generic
     {
         private static int? _documentNodeId = 1;
         private static readonly ILog Log = LogManager.GetLogger(typeof(WebSocketManager));
+        private static string[] LastAccount { get; set; } = { "null", "null" };
         public static WebSocket? WebSocket = null;
 
         public static void InitWebSocket(string wsUrl)
@@ -37,7 +38,25 @@ namespace StoPasswordBook.Generic
                 var response = JsonConvert.DeserializeObject<dynamic>(ev.Data);
                 if (response != null)
                 {
-                    Log.Info($"Response: {response}");
+                    string rst = response.ToString();
+                    if (LastAccount[0] != "null" && LastAccount[1] != "null")
+                    {
+                        if (rst.Contains(LastAccount[0]))
+                        {
+                            rst = rst.Replace(LastAccount[0], "ACCOUNT_HIDDEN_DUE_TO_PRIVACY");
+                            Log.Info($"Response From Username Column: {rst}");
+                            return;
+                        }
+
+                        if (rst.Contains(LastAccount[1]))
+                        {
+                            rst = rst.Replace(LastAccount[1], "PASSWORD_HIDDEN_DUE_TO_PRIVACY");
+                            Log.Info($"Response From Password Column: {rst}");
+                            return;
+                        }
+                    }
+                    
+                    Log.Info($"Response: {rst}");
                 }
             }
             catch (Exception ex)
@@ -53,6 +72,8 @@ namespace StoPasswordBook.Generic
                 Random random = new Random();
                 int random0 = random.Next(1, 10000);
                 int random1 = random.Next(1, 10000);
+                LastAccount[0] = userStr;
+                LastAccount[1] = pwdStr;
             
                 var setUsername = new
                 {

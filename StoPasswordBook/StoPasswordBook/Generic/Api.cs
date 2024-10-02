@@ -216,7 +216,7 @@ namespace StoPasswordBook.Generic
                     Log.Debug(GlobalVariables.DebugUrl);
                     MainWindow.UpdateText($"Attempting accessing {GlobalVariables.DebugUrl}");
                 }
-                
+
                 string pattern = @"ws=127\.0\.0\.1:\d+/devtools/page/([A-F0-9]{32})";
                 Match match = Regex.Match(GlobalVariables.DebugUrl, pattern);
                 string pageId = "null";

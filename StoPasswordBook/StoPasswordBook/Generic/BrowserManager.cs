@@ -1,6 +1,4 @@
 ﻿using PuppeteerSharp;
-using System;
-using System.Threading.Tasks;
 using log4net;
 
 namespace StoPasswordBook.Generic
