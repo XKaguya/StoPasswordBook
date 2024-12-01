@@ -38,26 +38,5 @@ namespace StoPasswordBook.Generic
                 return null;
             }
         }
-
-        public async Task FillInputField(string selector, string value)
-        {
-            try
-            {
-                var element = await QuerySelector(selector);
-                if (element != null)
-                {
-                    await element.EvaluateFunctionAsync("el => el.value = arguments[0]", value);
-                    Console.WriteLine($"{selector} filled with {value}.");
-                }
-                else
-                {
-                    Console.WriteLine($"Element {selector} not found.");
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error filling input field {selector}: {e.Message}");
-            }
-        }
     }
 }

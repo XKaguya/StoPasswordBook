@@ -19,8 +19,5 @@ namespace StoPasswordBook.Generic
 
         [IgnoreSetting]
         public static string WebSocketUrl { get; set; } = "null";
-        
-        [Description("How many seconds the program will wait. \nDefault value: 5")]
-        public static int WaitInterval { get; set; } = 10;
     }
 }

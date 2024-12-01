@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 using log4net;
 using StoPasswordBook;
 using StoPasswordBook.Generic;
@@ -44,6 +45,7 @@ namespace STOTool.Feature
                 if (!File.Exists(commonUpdaterPath))
                 {
                     Log.Info("There's no CommonUpdater in the folder. Failed to update.");
+                    MessageBox.Show("There's no CommonUpdater in the folder. Failed to update.\nIf you want get more supports, Please use the AutoUpdate feature");
                     return;
                 }
                 

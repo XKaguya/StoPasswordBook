@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
@@ -187,14 +189,14 @@ namespace StoPasswordBook.Generic
             root.AppendChild(element);
         }
         
-        private static async Task Locate()
+        private static async Task  Locate()
         {
             try
             {
                 if (BrowserManager.Browser == null)
                 {
                     Log.Error("Browser is null.");
-                    return;
+                    throw new UnreachableException();
                 }
 
                 var page = await BrowserManager.Browser.NewPageAsync();
@@ -204,7 +206,7 @@ namespace StoPasswordBook.Generic
                 
                 await pageHandler.NavigateTo(GlobalVariables.DebugUrl);
                 Log.Debug($"Attempting accessing {GlobalVariables.DebugUrl}");
-                MainWindow.UpdateText($"Attempting accessing {GlobalVariables.DebugUrl}");
+                MainWindow.UpdateText("Attempting accessing STO Launcher");
 
                 var linkElement = await pageHandler.QuerySelector("a[title='Cryptic Launcher | Star Trek']");
                 if (linkElement != null)
@@ -214,7 +216,7 @@ namespace StoPasswordBook.Generic
                     GlobalVariables.DebugUrl = hrefJson.ToString();
                     await page.GoToAsync(GlobalVariables.DebugUrl);
                     Log.Debug(GlobalVariables.DebugUrl);
-                    MainWindow.UpdateText($"Attempting accessing {GlobalVariables.DebugUrl}");
+                    MainWindow.UpdateText("Attempting accessing STO Launcher");
                 }
 
                 string pattern = @"ws=127\.0\.0\.1:\d+/devtools/page/([A-F0-9]{32})";
@@ -226,15 +228,13 @@ namespace StoPasswordBook.Generic
                 }
                 else
                 {
-                    MainWindow.UpdateText("Launcher timed out.");
-                    KillExistingInstances("Star Trek Online.exe");
+                    throw new UnreachableException();
                 }
 
                 if (pageId == "null")
                 {
                     Log.Error("PageId is null.");
-                    MainWindow.UpdateText("Please try again.");
-                    return;
+                    throw new UnreachableException();
                 }
                 
                 string webSocketUrl = $"ws://localhost:{GlobalVariables.DebugPort}/devtools/page/{pageId}";
@@ -244,7 +244,7 @@ namespace StoPasswordBook.Generic
                 
                 WebSocketManager.InitWebSocket(GlobalVariables.WebSocketUrl);
                 
-                MainWindow.UpdateText("Done.", Brushes.Green);
+                MainWindow.UpdateText("Done! Please choose a Account for login.", Brushes.Green);
                 Log.Info("Api initialized.");
 
                 await page.CloseAsync();
@@ -254,7 +254,19 @@ namespace StoPasswordBook.Generic
             catch (Exception ex)
             {
                 Log.Error(ex.Message + ex.StackTrace);
+                throw new UnreachableException();
             }
+        }
+        
+        private static int GetAvailablePort()
+        {
+            using TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+
+            listener.Start();
+            IPEndPoint endpoint = (IPEndPoint)listener.LocalEndpoint;
+            listener.Stop();
+            
+            return endpoint.Port;
         }
 
         public static async Task InitApi()
@@ -282,9 +294,8 @@ namespace StoPasswordBook.Generic
             SaveSettings();
             Log.Debug(GlobalVariables.LauncherPath);
 
-            Random random = new Random();
-            int randomNum = random.Next(500, 65535);
-            GlobalVariables.DebugPort = randomNum;
+            int availablePort = GetAvailablePort();
+            GlobalVariables.DebugPort = availablePort;
             Log.Debug(GlobalVariables.DebugPort);
             
             if (!File.Exists(GlobalVariables.LauncherPath))
@@ -301,9 +312,21 @@ namespace StoPasswordBook.Generic
             Process.Start(processStartInfo);
             Log.Debug($"Trying to start launcher with {processStartInfo.Arguments}");
             
-            await Task.Delay(TimeSpan.FromSeconds(GlobalVariables.WaitInterval));
             await BrowserManager.InitBrowser();
-            await Locate();
+            await RetryLocate();
+        }
+
+        private static async Task RetryLocate()
+        {
+            try
+            {
+                await Locate();
+            }
+            catch (UnreachableException ex)
+            {
+                Log.Error($"Locate failed. Retrying...");
+                await RetryLocate();
+            }
         }
     }
 }

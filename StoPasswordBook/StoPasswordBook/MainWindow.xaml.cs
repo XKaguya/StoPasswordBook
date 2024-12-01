@@ -16,7 +16,7 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    public static readonly string Version = "1.0.1";
+    public static readonly string Version = "1.0.2";
     
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
@@ -98,7 +98,7 @@ public partial class MainWindow : FluentWindow
     {
         var selectedAccount = AccountComboBox.SelectedItem as KeyValuePair<string, string>?;
 
-        if (selectedAccount.HasValue)
+        if (selectedAccount != null && selectedAccount.HasValue)
         {
             var accountName = selectedAccount.Value.Key;
             var selectedPassword = selectedAccount.Value.Value;

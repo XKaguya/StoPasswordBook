@@ -45,6 +45,8 @@ namespace StoPasswordBook.Generic
                         {
                             rst = rst.Replace(LastAccount[0], "ACCOUNT_HIDDEN_DUE_TO_PRIVACY");
                             Log.Info($"Response From Username Column: {rst}");
+                            
+                            MainWindow.UpdateText("Sent account and passwords to Launcher.", Brushes.CornflowerBlue);
                             return;
                         }
 
@@ -52,6 +54,8 @@ namespace StoPasswordBook.Generic
                         {
                             rst = rst.Replace(LastAccount[1], "PASSWORD_HIDDEN_DUE_TO_PRIVACY");
                             Log.Info($"Response From Password Column: {rst}");
+                            
+                            MainWindow.UpdateText("Sent account and passwords to Launcher.", Brushes.CornflowerBlue);
                             return;
                         }
                     }
@@ -65,10 +69,22 @@ namespace StoPasswordBook.Generic
             }
         }
 
-        public static bool SetUsernameAndPassword(WebSocket webSocket, string userStr, string pwdStr)
+        public static bool SetUsernameAndPassword(WebSocket? webSocket, string? userStr, string? pwdStr)
         {
             try
             {
+                if (webSocket == null)
+                {
+                    MainWindow.UpdateText("Websocket is null. Please try again.");
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(userStr) || string.IsNullOrEmpty(pwdStr))
+                {
+                    MainWindow.UpdateText("Account or Password is null or empty. Please check Shadow.xml");
+                    return false;
+                }
+                
                 Random random = new Random();
                 int random0 = random.Next(1, 10000);
                 int random1 = random.Next(1, 10000);
@@ -96,7 +112,6 @@ namespace StoPasswordBook.Generic
                     }
                 };
                 webSocket.Send(JsonConvert.SerializeObject(setPassword));
-                MainWindow.UpdateText("Sent account and passwords to Launcher.", Brushes.CornflowerBlue);
                 
                 return true;
             }
