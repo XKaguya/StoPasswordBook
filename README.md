@@ -17,7 +17,7 @@ A tool used to conveniently change accounts.
 # Usage
 
 * Download the latest release version from [Releases](https://github.com/XKaguya/StoPasswordBook/releases/latest).
-* Double-click the program to run it. Wait until Chrome is installed. (At this stage, it might fail due to network issues. Check the logs if nothing happens and it's stuck.)
+* Double-click the program to run it.
 * Wait until the text block turns green with the message `Done.`
   
   ![screenshot](https://github.com/user-attachments/assets/fe4e97a7-7087-4825-8f0d-f073bcd58962)
