@@ -9,6 +9,8 @@ using System.Windows.Media;
 using System.Xml;
 using log4net;
 using Microsoft.Win32;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace StoPasswordBook.Generic
 {
@@ -189,56 +191,34 @@ namespace StoPasswordBook.Generic
             root.AppendChild(element);
         }
         
-        private static async Task  Locate()
+        private static async Task Locate()
         {
             try
             {
-                if (BrowserManager.Browser == null)
+                if (HttpClientManager.HttpClient == null)
                 {
-                    Log.Error("Browser is null.");
+                    Log.Error("HttpClient is null.");
                     throw new UnreachableException();
                 }
-
-                var page = await BrowserManager.Browser.NewPageAsync();
-                var pageHandler = new PageHandler(page);
                 
-                GlobalVariables.DebugUrl = $"http://127.0.0.1:{GlobalVariables.DebugPort}";
-                
-                await pageHandler.NavigateTo(GlobalVariables.DebugUrl);
+                GlobalVariables.DebugUrl = $"http://127.0.0.1:{GlobalVariables.DebugPort}/json/list";
+                var response = await HttpClientManager.HttpClient.GetAsync(GlobalVariables.DebugUrl);
                 Log.Debug($"Attempting accessing {GlobalVariables.DebugUrl}");
                 MainWindow.UpdateText("Attempting accessing STO Launcher");
-
-                var linkElement = await pageHandler.QuerySelector("a[title='Cryptic Launcher | Star Trek']");
-                if (linkElement != null)
+                
+                if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    var href = await linkElement.GetPropertyAsync("href");
-                    var hrefJson = await href.JsonValueAsync();
-                    GlobalVariables.DebugUrl = hrefJson.ToString();
-                    await page.GoToAsync(GlobalVariables.DebugUrl);
+                    List<DebugInfo>? debugInfoList = JsonConvert.DeserializeObject<List<DebugInfo>>(response.Content.ReadAsStringAsync().Result);
+                    if (debugInfoList == null || debugInfoList.Count == 0)
+                    {
+                        return;
+                    }
+
+                    GlobalVariables.DebugUrl = debugInfoList[0].WebSocketDebuggerUrl;
                     Log.Debug(GlobalVariables.DebugUrl);
-                    MainWindow.UpdateText("Attempting accessing STO Launcher");
-                }
-
-                string pattern = @"ws=127\.0\.0\.1:\d+/devtools/page/([A-F0-9]{32})";
-                Match match = Regex.Match(GlobalVariables.DebugUrl, pattern);
-                string pageId = "null";
-                if (match.Success)
-                {
-                    pageId = match.Groups[1].Value;
-                }
-                else
-                {
-                    throw new UnreachableException();
-                }
-
-                if (pageId == "null")
-                {
-                    Log.Error("PageId is null.");
-                    throw new UnreachableException();
                 }
                 
-                string webSocketUrl = $"ws://localhost:{GlobalVariables.DebugPort}/devtools/page/{pageId}";
-                GlobalVariables.WebSocketUrl = webSocketUrl;
+                GlobalVariables.WebSocketUrl = GlobalVariables.DebugUrl;
                 Log.Debug($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
                 MainWindow.UpdateText($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
                 
@@ -247,9 +227,8 @@ namespace StoPasswordBook.Generic
                 MainWindow.UpdateText("Done! Please choose a Account for login.", Brushes.Green);
                 Log.Info("Api initialized.");
 
-                await page.CloseAsync();
-                await BrowserManager.Browser.CloseAsync();
-                BrowserManager.Browser = null;
+                HttpClientManager.HttpClient.Dispose();
+                HttpClientManager.HttpClient = null;
             }
             catch (Exception ex)
             {
@@ -273,7 +252,7 @@ namespace StoPasswordBook.Generic
         {
             Log.Debug("Called InitApi");
             
-            if (GlobalVariables.LauncherPath == "null")
+            if (GlobalVariables.LauncherPath == "null" || !File.Exists(GlobalVariables.LauncherPath))
             {
                 OpenFileDialog openFileDialog = new OpenFileDialog
                 {
@@ -287,16 +266,13 @@ namespace StoPasswordBook.Generic
                 if (result == true)
                 {
                     GlobalVariables.LauncherPath = openFileDialog.FileName;
-                    Log.Debug(GlobalVariables.LauncherPath);
                 }
             }
             
             SaveSettings();
-            Log.Debug(GlobalVariables.LauncherPath);
 
             int availablePort = GetAvailablePort();
             GlobalVariables.DebugPort = availablePort;
-            Log.Debug(GlobalVariables.DebugPort);
             
             if (!File.Exists(GlobalVariables.LauncherPath))
             {
@@ -312,7 +288,9 @@ namespace StoPasswordBook.Generic
             Process.Start(processStartInfo);
             Log.Debug($"Trying to start launcher with {processStartInfo.Arguments}");
             
-            await BrowserManager.InitBrowser();
+            // Remove browser due it will slow the speed.
+            // await BrowserManager.InitBrowser();
+            await HttpClientManager.InitBrowser();
             await RetryLocate();
         }
 
