@@ -11,6 +11,9 @@ namespace StoPasswordBook.Generic
         [Description("Launcher path. Do not touch this unless you're reinstalled your STO. \nDefault value: null")]
         public static string LauncherPath { get; set; } = "null";
         
+        [Description("Never show the hints of auto update. \nDefault value: false")]
+        public static bool NeverShowAgain { get; set; } = false;
+        
         [IgnoreSetting]
         public static int DebugPort { get; set; } = 0;
         

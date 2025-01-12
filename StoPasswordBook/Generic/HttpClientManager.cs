@@ -9,7 +9,7 @@ public class HttpClientManager
 
     public static HttpClient? HttpClient { get; set; } = null;
 
-    public static async Task<bool> InitBrowser()
+    public static async Task InitHttpClient()
     {
         try
         {
@@ -23,22 +23,22 @@ public class HttpClientManager
                 {
                     Log.Error(ex.Message + ex.StackTrace);
                     MainWindow.UpdateText("ERROR Initializing HTTP client. Please check the log.");
-                    return false;
+                    return;
                 }
             }
             else
             {
                 Log.Error("HttpClient is already initialized.");
-                return true;
+                return;
             }
         }
         catch (Exception ex)
         {
             Log.Error(ex.Message + ex.StackTrace);
             MainWindow.UpdateText("ERROR Initializing HTTP client. Please check the log.");
-            return false;
+            return;
         }
 
-        return false;
+        return;
     }
 }

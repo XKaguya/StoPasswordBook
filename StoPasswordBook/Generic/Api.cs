@@ -2,15 +2,14 @@
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Xml;
 using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace StoPasswordBook.Generic
 {
@@ -191,18 +190,29 @@ namespace StoPasswordBook.Generic
             root.AppendChild(element);
         }
         
-        private static async Task Locate()
+        private static async Task<bool> Locate()
         {
             try
             {
                 if (HttpClientManager.HttpClient == null)
                 {
                     Log.Error("HttpClient is null.");
-                    throw new UnreachableException();
+                    return false;
                 }
                 
                 GlobalVariables.DebugUrl = $"http://127.0.0.1:{GlobalVariables.DebugPort}/json/list";
-                var response = await HttpClientManager.HttpClient.GetAsync(GlobalVariables.DebugUrl);
+
+                HttpResponseMessage? response = null;
+
+                try
+                {
+                    response = await HttpClientManager.HttpClient.GetAsync(GlobalVariables.DebugUrl);
+                }
+                catch (HttpRequestException ex)
+                {
+                    return false;
+                }
+                
                 Log.Debug($"Attempting accessing {GlobalVariables.DebugUrl}");
                 MainWindow.UpdateText("Attempting accessing STO Launcher");
                 
@@ -211,7 +221,7 @@ namespace StoPasswordBook.Generic
                     List<DebugInfo>? debugInfoList = JsonConvert.DeserializeObject<List<DebugInfo>>(response.Content.ReadAsStringAsync().Result);
                     if (debugInfoList == null || debugInfoList.Count == 0)
                     {
-                        return;
+                        return false;
                     }
 
                     GlobalVariables.DebugUrl = debugInfoList[0].WebSocketDebuggerUrl;
@@ -229,11 +239,13 @@ namespace StoPasswordBook.Generic
 
                 HttpClientManager.HttpClient.Dispose();
                 HttpClientManager.HttpClient = null;
+                
+                return true;
             }
             catch (Exception ex)
             {
                 Log.Error(ex.Message + ex.StackTrace);
-                throw new UnreachableException();
+                return false;
             }
         }
         
@@ -276,6 +288,7 @@ namespace StoPasswordBook.Generic
             
             if (!File.Exists(GlobalVariables.LauncherPath))
             {
+                MainWindow.UpdateText("Launcher not found. Please reset the game launcher settings.");
                 return;
             }
             
@@ -285,22 +298,32 @@ namespace StoPasswordBook.Generic
                 Arguments = $"--remote-debugging-port={GlobalVariables.DebugPort}",
             };
 
-            Process.Start(processStartInfo);
-            Log.Debug($"Trying to start launcher with {processStartInfo.Arguments}");
+            Process? process = null;
+
+            try
+            {
+                process = Process.Start(processStartInfo);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.Message + ex.StackTrace);
+            }
             
-            // Remove browser due it will slow the speed.
-            // await BrowserManager.InitBrowser();
-            await HttpClientManager.InitBrowser();
+            if (process == null)
+            {
+                MainWindow.UpdateText("Failed to start the launcher. Please try again or check the log.");
+                return;
+            }
+            
+            await HttpClientManager.InitHttpClient();
             await RetryLocate();
         }
 
         private static async Task RetryLocate()
         {
-            try
-            {
-                await Locate();
-            }
-            catch (UnreachableException ex)
+            bool res = await Locate();
+
+            if (res == false)
             {
                 Log.Error($"Locate failed. Retrying...");
                 await RetryLocate();
