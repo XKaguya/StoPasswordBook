@@ -7,9 +7,8 @@ namespace StoPasswordBook.Generic
 {
     public class WebSocketManager
     {
-        private static int? _documentNodeId = 1;
         private static readonly ILog Log = LogManager.GetLogger(typeof(WebSocketManager));
-        private static string[] LastAccount { get; set; } = { "null", "null" };
+        private static string[] LastAccount { get; set; } = ["null", "null"];
         public static WebSocket? WebSocket = null;
 
         public static void InitWebSocket(string wsUrl)
@@ -84,16 +83,14 @@ namespace StoPasswordBook.Generic
                     MainWindow.UpdateText("Account or Password is null or empty. Please check Shadow.xml");
                     return false;
                 }
-                
-                Random random = new Random();
-                int random0 = random.Next(1, 10000);
-                int random1 = random.Next(1, 10000);
+
+                LastAccount = new[] { userStr, pwdStr };
                 LastAccount[0] = userStr;
                 LastAccount[1] = pwdStr;
             
                 var setUsername = new
                 {
-                    id = random0,
+                    id = 0,
                     method = "Runtime.evaluate",
                     @params = new
                     {
@@ -104,7 +101,7 @@ namespace StoPasswordBook.Generic
 
                 var setPassword = new
                 {
-                    id = random1,
+                    id = 1,
                     method = "Runtime.evaluate",
                     @params = new
                     {

@@ -5,8 +5,8 @@ using System.Windows.Media;
 using System.Xml.Linq;
 using log4net;
 using log4net.Config;
+using StoPasswordBook.Extern;
 using StoPasswordBook.Generic;
-using STOTool.Feature;
 using Wpf.Ui.Controls;
 
 namespace StoPasswordBook;
@@ -16,7 +16,7 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    public static readonly string Version = "1.0.2";
+    public static readonly string Version = "1.0.4";
     
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
@@ -83,13 +83,11 @@ public partial class MainWindow : FluentWindow
                 }
             }
             
-            Log.Info($"Successfully loaded {Accounts.Count} accounts.");
-
             UpdateText("Accounts loaded.");
         }
         catch (Exception ex)
         {
-            Log.Error("Error loading accounts from Shadow.xml", ex);
+            Log.Error($"Error loading accounts from Shadow.xml {ex.Message}");
             UpdateText("Error loading accounts from Shadow.xml");
         }
     }
@@ -109,13 +107,12 @@ public partial class MainWindow : FluentWindow
                 UpdateText("Empty account or password.");
                 return;
             }
-        
-            Log.Debug(GlobalVariables.WebSocketUrl);
 
             if (WebSocketManager.WebSocket == null || !WebSocketManager.WebSocket.IsAlive)
             {
                 Api.KillExistingInstances("Star Trek Online");
                 await Api.InitApi();
+                WebSocketManager.SetUsernameAndPassword(WebSocketManager.WebSocket, accountName, selectedPassword);
             }
         
             WebSocketManager.SetUsernameAndPassword(WebSocketManager.WebSocket, accountName, selectedPassword);
@@ -141,12 +138,12 @@ public partial class MainWindow : FluentWindow
             Log.Error($"Failed to find embedded resource: {resourceName}");
         }
         
+        Api.ParseConfig();
         AutoUpdate.StartAutoUpdateTask();
         
         Log.Info("Initializing Api...");
         UpdateText("Initializing Api...");
         LoadAccounts();
-        Api.ParseConfig();
         await Api.InitApi();
     }
 
