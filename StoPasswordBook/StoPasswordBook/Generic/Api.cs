@@ -18,6 +18,10 @@ namespace StoPasswordBook.Generic
         private static readonly ILog Log = LogManager.GetLogger(typeof(Api));
         private static string ConfigFilePath { get; } = "Config.xml";
         
+        private static readonly SemaphoreSlim Semaphore = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim SemaphoreLocate = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim SemaphoreInitApi = new SemaphoreSlim(1, 1);
+        
         [AttributeUsage(AttributeTargets.Property)]
         public class IgnoreSettingAttribute : Attribute
         {
@@ -190,16 +194,18 @@ namespace StoPasswordBook.Generic
             root.AppendChild(element);
         }
         
-        private static async Task<bool> Locate()
+       private static async Task<bool> Locate()
         {
             try
             {
+                await SemaphoreLocate.WaitAsync();
+
                 if (HttpClientManager.HttpClient == null)
                 {
                     Log.Error("HttpClient is null.");
                     return false;
                 }
-                
+
                 GlobalVariables.DebugUrl = $"http://127.0.0.1:{GlobalVariables.DebugPort}/json/list";
 
                 HttpResponseMessage? response = null;
@@ -212,13 +218,13 @@ namespace StoPasswordBook.Generic
                 {
                     return false;
                 }
-                
+
                 Log.Debug($"Attempting accessing {GlobalVariables.DebugUrl}");
                 MainWindow.UpdateText("Attempting accessing STO Launcher");
-                
+
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
-                    List<DebugInfo>? debugInfoList = JsonConvert.DeserializeObject<List<DebugInfo>>(response.Content.ReadAsStringAsync().Result);
+                    List<DebugInfo>? debugInfoList = JsonConvert.DeserializeObject<List<DebugInfo>>(await response.Content.ReadAsStringAsync());
                     if (debugInfoList == null || debugInfoList.Count == 0)
                     {
                         return false;
@@ -227,19 +233,16 @@ namespace StoPasswordBook.Generic
                     GlobalVariables.DebugUrl = debugInfoList[0].WebSocketDebuggerUrl;
                     Log.Debug(GlobalVariables.DebugUrl);
                 }
-                
+
                 GlobalVariables.WebSocketUrl = GlobalVariables.DebugUrl;
                 Log.Debug($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
                 MainWindow.UpdateText($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
-                
+
                 WebSocketManager.InitWebSocket(GlobalVariables.WebSocketUrl);
-                
-                MainWindow.UpdateText("Done! Please choose a Account for login.", Brushes.Green);
+
+                MainWindow.UpdateText("Done! Please choose an Account for login.", Brushes.Green);
                 Log.Info("Api initialized.");
 
-                HttpClientManager.HttpClient.Dispose();
-                HttpClientManager.HttpClient = null;
-                
                 return true;
             }
             catch (Exception ex)
@@ -247,6 +250,77 @@ namespace StoPasswordBook.Generic
                 Log.Error(ex.Message + ex.StackTrace);
                 return false;
             }
+            finally
+            {
+                SemaphoreLocate.Release();
+            }
+        }
+
+        public static async Task InitApi()
+        {
+            try
+            {
+                await SemaphoreInitApi.WaitAsync();
+                Log.Debug("Called InitApi");
+
+                if (GlobalVariables.LauncherPath == "null" || !File.Exists(GlobalVariables.LauncherPath))
+                {
+                    OpenFileDialog openFileDialog = new OpenFileDialog
+                    {
+                        Filter = "Star Trek Online.exe|Star Trek Online.exe",
+                        Title = "Select the game launcher",
+                        FileName = "Star Trek Online.exe"
+                    };
+
+                    bool? result = openFileDialog.ShowDialog();
+
+                    if (result == true)
+                    {
+                        GlobalVariables.LauncherPath = openFileDialog.FileName;
+                    }
+                }
+
+                SaveSettings();
+
+                int availablePort = GetAvailablePort();
+                GlobalVariables.DebugPort = availablePort;
+
+                if (!File.Exists(GlobalVariables.LauncherPath))
+                {
+                    MainWindow.UpdateText("Launcher not found. Please reset the game launcher settings.");
+                    return;
+                }
+
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = GlobalVariables.LauncherPath,
+                    Arguments = $"--remote-debugging-port={GlobalVariables.DebugPort}",
+                };
+
+                Process? process = null;
+
+                try
+                {
+                    process = Process.Start(processStartInfo);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex.Message + ex.StackTrace);
+                }
+
+                if (process == null)
+                {
+                    MainWindow.UpdateText("Failed to start the launcher. Please try again or check the log.");
+                    return;
+                }
+            }
+            finally
+            {
+                SemaphoreInitApi.Release();
+            }
+
+            await HttpClientManager.InitHttpClient();
+            await RetryLocate();
         }
         
         private static int GetAvailablePort()
@@ -260,73 +334,19 @@ namespace StoPasswordBook.Generic
             return endpoint.Port;
         }
 
-        public static async Task InitApi()
-        {
-            Log.Debug("Called InitApi");
-            
-            if (GlobalVariables.LauncherPath == "null" || !File.Exists(GlobalVariables.LauncherPath))
-            {
-                OpenFileDialog openFileDialog = new OpenFileDialog
-                {
-                    Filter = "Star Trek Online.exe|Star Trek Online.exe",
-                    Title = "Select the game launcher",
-                    FileName = "Star Trek Online.exe"
-                };
-
-                bool? result = openFileDialog.ShowDialog();
-
-                if (result == true)
-                {
-                    GlobalVariables.LauncherPath = openFileDialog.FileName;
-                }
-            }
-            
-            SaveSettings();
-
-            int availablePort = GetAvailablePort();
-            GlobalVariables.DebugPort = availablePort;
-            
-            if (!File.Exists(GlobalVariables.LauncherPath))
-            {
-                MainWindow.UpdateText("Launcher not found. Please reset the game launcher settings.");
-                return;
-            }
-            
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = GlobalVariables.LauncherPath,
-                Arguments = $"--remote-debugging-port={GlobalVariables.DebugPort}",
-            };
-
-            Process? process = null;
-
-            try
-            {
-                process = Process.Start(processStartInfo);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex.Message + ex.StackTrace);
-            }
-            
-            if (process == null)
-            {
-                MainWindow.UpdateText("Failed to start the launcher. Please try again or check the log.");
-                return;
-            }
-            
-            await HttpClientManager.InitHttpClient();
-            await RetryLocate();
-        }
-
         private static async Task RetryLocate()
         {
-            bool res = await Locate();
+            bool success = false;
 
-            if (res == false)
+            while (!success)
             {
-                Log.Error($"Locate failed. Retrying...");
-                await RetryLocate();
+                success = await Locate();
+
+                if (!success)
+                {
+                    Log.Error("Locate failed. Retrying...");
+                    await Task.Yield();
+                }
             }
         }
     }
