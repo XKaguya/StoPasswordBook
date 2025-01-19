@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Xml;
 using log4net;
@@ -255,6 +256,39 @@ namespace StoPasswordBook.Generic
                 SemaphoreLocate.Release();
             }
         }
+       
+        public static int GetDebugPort()
+        {
+            ProcessStartInfo processStartInfo = new ProcessStartInfo();
+            processStartInfo.FileName = "cmd.exe";
+            processStartInfo.Arguments = "/C wmic process where \"caption='Star Trek Online.exe'\" get caption,commandline /value";
+            processStartInfo.RedirectStandardOutput = true;
+            processStartInfo.CreateNoWindow = true;
+
+            Process? process = Process.Start(processStartInfo);
+
+            if (process == null)
+            {
+                return 0;
+            }
+
+            string output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            if (output.Contains("remote-debugging-port"))
+            {
+                string pattern = @"--remote-debugging-port=(\d+)";
+                Match match = Regex.Match(output, pattern);
+
+                if (match.Success)
+                {
+                    string portValue = match.Groups[1].Value;
+                    return int.Parse(portValue);
+                }
+            }
+
+            return 0;
+        }
 
         public static async Task InitApi()
         {
@@ -263,55 +297,63 @@ namespace StoPasswordBook.Generic
                 await SemaphoreInitApi.WaitAsync();
                 Log.Debug("Called InitApi");
 
-                if (GlobalVariables.LauncherPath == "null" || !File.Exists(GlobalVariables.LauncherPath))
+                int port = GetDebugPort();
+                if (port == 0)
                 {
-                    OpenFileDialog openFileDialog = new OpenFileDialog
+                    if (GlobalVariables.LauncherPath == "null" || !File.Exists(GlobalVariables.LauncherPath))
                     {
-                        Filter = "Star Trek Online.exe|Star Trek Online.exe",
-                        Title = "Select the game launcher",
-                        FileName = "Star Trek Online.exe"
+                        OpenFileDialog openFileDialog = new OpenFileDialog
+                        {
+                            Filter = "Star Trek Online.exe|Star Trek Online.exe",
+                            Title = "Select the game launcher",
+                            FileName = "Star Trek Online.exe"
+                        };
+
+                        bool? result = openFileDialog.ShowDialog();
+
+                        if (result == true)
+                        {
+                            GlobalVariables.LauncherPath = openFileDialog.FileName;
+                        }
+                    }
+
+                    SaveSettings();
+
+                    int availablePort = GetAvailablePort();
+                    GlobalVariables.DebugPort = availablePort;
+
+                    if (!File.Exists(GlobalVariables.LauncherPath))
+                    {
+                        MainWindow.UpdateText("Launcher not found. Please reset the game launcher settings.");
+                        return;
+                    }
+
+                    var processStartInfo = new ProcessStartInfo
+                    {
+                        FileName = GlobalVariables.LauncherPath,
+                        Arguments = $"--remote-debugging-port={GlobalVariables.DebugPort}",
                     };
 
-                    bool? result = openFileDialog.ShowDialog();
+                    Process? process = null;
 
-                    if (result == true)
+                    try
                     {
-                        GlobalVariables.LauncherPath = openFileDialog.FileName;
+                        process = Process.Start(processStartInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex.Message + ex.StackTrace);
+                    }
+
+                    if (process == null)
+                    {
+                        MainWindow.UpdateText("Failed to start the launcher. Please try again or check the log.");
+                        return;
                     }
                 }
-
-                SaveSettings();
-
-                int availablePort = GetAvailablePort();
-                GlobalVariables.DebugPort = availablePort;
-
-                if (!File.Exists(GlobalVariables.LauncherPath))
+                else
                 {
-                    MainWindow.UpdateText("Launcher not found. Please reset the game launcher settings.");
-                    return;
-                }
-
-                var processStartInfo = new ProcessStartInfo
-                {
-                    FileName = GlobalVariables.LauncherPath,
-                    Arguments = $"--remote-debugging-port={GlobalVariables.DebugPort}",
-                };
-
-                Process? process = null;
-
-                try
-                {
-                    process = Process.Start(processStartInfo);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex.Message + ex.StackTrace);
-                }
-
-                if (process == null)
-                {
-                    MainWindow.UpdateText("Failed to start the launcher. Please try again or check the log.");
-                    return;
+                    GlobalVariables.DebugPort = port;
                 }
             }
             finally

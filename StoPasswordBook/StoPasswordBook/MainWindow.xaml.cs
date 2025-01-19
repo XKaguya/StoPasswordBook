@@ -16,7 +16,7 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    public static readonly string Version = "1.0.5";
+    public static readonly string Version = "1.0.6";
     
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
