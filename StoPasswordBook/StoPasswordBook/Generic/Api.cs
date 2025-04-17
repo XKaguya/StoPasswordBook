@@ -11,6 +11,7 @@ using System.Xml;
 using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;
+using StoPasswordBook.Native;
 
 namespace StoPasswordBook.Generic
 {
@@ -239,9 +240,17 @@ namespace StoPasswordBook.Generic
                 Log.Debug($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
                 MainWindow.UpdateText($"WebSocket URL: {GlobalVariables.WebSocketUrl}");
 
-                WebSocketManager.InitWebSocket(GlobalVariables.WebSocketUrl);
+                NewWebSocketManager.InitWebSocket(GlobalVariables.WebSocketUrl);
 
-                MainWindow.UpdateText("Done! Please choose an Account for login.", Brushes.Green);
+                if (GlobalVariables.IsInitSubmit)
+                {
+                    MainWindow.UpdateText($"The credential data has sent.\nProgram will wait {GlobalVariables.WaitInterval} seconds for send credential data for STO Launcher loading.\nIf the account or password mismatch, please adjust the interval.", Brushes.Green);
+                }
+                else
+                {
+                    MainWindow.UpdateText("Done.", Brushes.Green);
+                }
+
                 Log.Info("Api initialized.");
 
                 return true;

@@ -16,7 +16,7 @@ namespace StoPasswordBook;
 /// </summary>
 public partial class MainWindow : FluentWindow
 {
-    public static readonly string Version = "1.0.6";
+    public static readonly string Version = "1.0.7";
     
     private static readonly ILog Log = LogManager.GetLogger(typeof(MainWindow));
     
@@ -92,7 +92,7 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    private async void SubmitButton_Click(object sender, RoutedEventArgs e)
+    private async Task ApplyAccount()
     {
         var selectedAccount = AccountComboBox.SelectedItem as KeyValuePair<string, string>?;
 
@@ -108,19 +108,29 @@ public partial class MainWindow : FluentWindow
                 return;
             }
 
-            if (WebSocketManager.WebSocket == null || !WebSocketManager.WebSocket.IsAlive)
+            if (NewWebSocketManager.WebSocket == null || !NewWebSocketManager.WebSocket.IsAlive)
             {
                 Api.KillExistingInstances("Star Trek Online");
                 await Api.InitApi();
-                WebSocketManager.SetUsernameAndPassword(WebSocketManager.WebSocket, accountName, selectedPassword);
+                await NewWebSocketManager.SetCredentials(accountName, selectedPassword);
             }
         
-            WebSocketManager.SetUsernameAndPassword(WebSocketManager.WebSocket, accountName, selectedPassword);
+            await NewWebSocketManager.SetCredentials(accountName, selectedPassword);
         }
         else
         {
             UpdateText("ERROR While accessing passwords.");
         }
+    }
+
+    private async void SubmitButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (GlobalVariables.IsInitSubmit)
+        {
+            GlobalVariables.IsInitSubmit = false;
+        }
+        
+        await ApplyAccount();
     }
 
     private async Task InitMethod()
@@ -144,7 +154,21 @@ public partial class MainWindow : FluentWindow
         Log.Info("Initializing Api...");
         UpdateText("Initializing Api...");
         LoadAccounts();
+        GlobalVariables.IsInitSubmit = true;
         await Api.InitApi();
+        await Task.Delay(TimeSpan.FromSeconds(GlobalVariables.WaitInterval));
+        
+        var selectedAccount = await Application.Current.Dispatcher.InvokeAsync(() =>
+            AccountComboBox.SelectedItem as KeyValuePair<string, string>?
+        );
+        var accountName = selectedAccount.Value.Key;
+        var selectedPassword = selectedAccount.Value.Value;
+
+        do
+        {
+            await NewWebSocketManager.SetCredentials(accountName, selectedPassword);
+            await NewWebSocketManager.GetCurrentCredentials();
+        } while (GlobalVariables.SetColumnNum != 2);
     }
 
     private void UpdateTextEx(string str, Brush? brushes = null)

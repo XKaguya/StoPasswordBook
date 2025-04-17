@@ -1,4 +1,4 @@
-﻿namespace StoPasswordBook.Generic
+﻿namespace StoPasswordBook.Native
 {
     public class DebugInfo
     {

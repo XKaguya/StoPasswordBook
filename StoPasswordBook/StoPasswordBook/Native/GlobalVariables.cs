@@ -22,5 +22,17 @@ namespace StoPasswordBook.Generic
 
         [IgnoreSetting]
         public static string WebSocketUrl { get; set; } = "null";
+        
+        [IgnoreSetting]
+        public static string ObjectId { get; set; } = "null";
+        
+        [IgnoreSetting]
+        public static int SetColumnNum { get; set; } = 0;
+        
+        [Description("Define how long the program will wait to send the initial credential data. \nDefault value: 2")]
+        public static int WaitInterval { get; set; } = 2;
+        
+        [IgnoreSetting]
+        public static bool IsInitSubmit { get; set; } = false;
     }
 }

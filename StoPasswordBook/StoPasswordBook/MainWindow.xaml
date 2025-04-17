@@ -18,7 +18,8 @@
             <ComboBox x:Name="AccountComboBox" Width="250" Margin="0,5,0,15" 
                          ItemsSource="{Binding Accounts}"
                          DisplayMemberPath="Key"
-                         SelectedValuePath="Key"/>
+                         SelectedValuePath="Key"
+                         SelectedIndex="0"/>
             
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
                 <ui:Button x:Name="SubmitButton" Content="Submit" Width="100" Margin="10,0,0,0" Click="SubmitButton_Click" Appearance="Primary" />
@@ -26,7 +27,7 @@
             
             <ui:TextBlock x:Name="LogTextBlock" 
                        Margin="0,30,0,0" 
-                       Width="500" 
+                       Width="650" 
                        Height="100"
                        FontSize="14" 
                        Text="{Binding LatestLogMessage}" 
